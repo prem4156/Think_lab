@@ -6,16 +6,16 @@ import 'theme/app_theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const ThinkLabApp());
+  runApp(const ThinkCityApp());
 }
 
-class ThinkLabApp extends StatelessWidget {
-  const ThinkLabApp({Key? key}) : super(key: key);
+class ThinkCityApp extends StatelessWidget {
+  const ThinkCityApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Think Lab - Mind Gym',
+      title: 'Aftermind',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.pastelTheme,
       home: FutureBuilder<bool>(

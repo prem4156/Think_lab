@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user_profile.dart';
 import '../models/daily_workout.dart';
 import '../models/game_result.dart';
+import '../models/user_level_progress.dart';
 
 class StorageService {
   static final StorageService instance = StorageService._internal();
@@ -47,6 +48,25 @@ class StorageService {
   Future<void> saveProfile(UserProfile profile) async {
     await init();
     await _prefs?.setString('user_profile', jsonEncode(profile.toJson()));
+  }
+
+  // --- Level Journey Progress Storage ---
+  Future<UserLevelProgress> loadLevelProgress() async {
+    await init();
+    String? raw = _prefs?.getString('user_level_progress');
+    if (raw != null) {
+      try {
+        return UserLevelProgress.fromJson(jsonDecode(raw));
+      } catch (_) {}
+    }
+    UserLevelProgress initial = UserLevelProgress.initial();
+    await saveLevelProgress(initial);
+    return initial;
+  }
+
+  Future<void> saveLevelProgress(UserLevelProgress progress) async {
+    await init();
+    await _prefs?.setString('user_level_progress', jsonEncode(progress.toJson()));
   }
 
   // --- Daily Workout Storage ---

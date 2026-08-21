@@ -18,14 +18,25 @@ class _LoginScreenState extends State<LoginScreen> {
   bool isPasswordVisible = false;
   bool isLoading = false;
 
-  final TextEditingController nameController =
-      TextEditingController(text: 'Alex Rivera');
-  final TextEditingController emailController =
-      TextEditingController(text: 'alex@thinklab.app');
-  final TextEditingController passwordController =
-      TextEditingController(text: 'password123');
+  final TextEditingController nameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
 
   final _formKey = GlobalKey<FormState>();
+
+  String _deriveNameFromEmail(String email, String enteredName) {
+    if (enteredName.isNotEmpty) return enteredName;
+    if (email.contains('@')) {
+      String userPart = email.split('@').first;
+      List<String> parts = userPart.replaceAll(RegExp(r'[._-]'), ' ').split(' ');
+      String formatted = parts.where((p) => p.isNotEmpty).map((w) {
+        if (w.isEmpty) return '';
+        return w[0].toUpperCase() + (w.length > 1 ? w.substring(1).toLowerCase() : '');
+      }).join(' ');
+      if (formatted.trim().isNotEmpty) return formatted.trim();
+    }
+    return 'Mind Trainer';
+  }
 
   void _handleAuthSubmit() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
@@ -33,7 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
     SoundService.instance.playTap();
     setState(() => isLoading = true);
 
-    await Future.delayed(const Duration(milliseconds: 900));
+    await Future.delayed(const Duration(milliseconds: 700));
 
     final storage = StorageService.instance;
     UserProfile profile = await storage.loadProfile();
@@ -41,8 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
     String enteredName = nameController.text.trim();
     String enteredEmail = emailController.text.trim();
 
-    profile.name = enteredName.isNotEmpty ? enteredName : 'Mind Trainer';
-    profile.email = enteredEmail.isNotEmpty ? enteredEmail : 'trainer@thinklab.app';
+    profile.name = _deriveNameFromEmail(enteredEmail, enteredName);
+    profile.email = enteredEmail.isNotEmpty ? enteredEmail : 'trainer@thinkcity.app';
 
     await storage.saveProfile(profile);
     await storage.setLoggedIn(true);
@@ -123,7 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 20),
 
                 Text(
-                  'THINK LAB',
+                  'THINK CITY',
                   style: TextStyle(
                     color: AppTheme.primaryNeon,
                     fontSize: 26,
@@ -241,18 +252,17 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Name Field (Visible during Sign Up)
-                        if (isSignUp) ...[
-                          _buildTextField(
-                            controller: nameController,
-                            label: 'Full Name',
-                            hint: 'Enter your name',
-                            icon: Icons.person_outline_rounded,
-                            validator: (v) =>
-                                v == null || v.isEmpty ? 'Name required' : null,
-                          ),
-                          const SizedBox(height: 16),
-                        ],
+                        // Name Field (Always available, required for Sign Up)
+                        _buildTextField(
+                          controller: nameController,
+                          label: isSignUp ? 'Full Name' : 'Display Name (Optional)',
+                          hint: 'e.g. Prem',
+                          icon: Icons.person_outline_rounded,
+                          validator: isSignUp
+                              ? (v) => v == null || v.isEmpty ? 'Name required for Sign Up' : null
+                              : null,
+                        ),
+                        const SizedBox(height: 16),
 
                         // Email Field
                         _buildTextField(

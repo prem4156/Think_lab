@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../../models/game_result.dart';
 import '../../services/sound_service.dart';
 import '../../theme/app_theme.dart';
@@ -184,30 +185,31 @@ class _StroopMatchGameState extends State<StroopMatchGame> {
                     width: double.infinity,
                     padding: const EdgeInsets.all(40),
                     decoration: BoxDecoration(
-                      color: AppTheme.surfaceDark,
-                      borderRadius: BorderRadius.circular(32),
+                      color: AppTheme.surfaceCard,
+                      borderRadius: BorderRadius.circular(36),
                       border: Border.all(
-                        color: displayedColor.withOpacity(0.6),
-                        width: 2,
+                        color: displayedColor.withValues(alpha: 0.6),
+                        width: 2.5,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: displayedColor.withOpacity(0.25),
-                          blurRadius: 30,
-                          spreadRadius: 5,
+                          color: displayedColor.withValues(alpha: 0.25),
+                          blurRadius: 36,
+                          spreadRadius: 4,
                         ),
                       ],
                     ),
                     child: Center(
                       child: Text(
                         displayedWord,
+                        key: ValueKey(displayedWord + displayedColor.toString()),
                         style: TextStyle(
                           color: displayedColor,
-                          fontSize: 52,
+                          fontSize: 54,
                           fontWeight: FontWeight.w900,
                           letterSpacing: 4.0,
                         ),
-                      ),
+                      ).animate().scale(duration: 200.ms, curve: Curves.easeOutBack),
                     ),
                   ),
                 ),

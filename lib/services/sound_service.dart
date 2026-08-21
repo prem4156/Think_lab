@@ -52,6 +52,10 @@ class SoundService {
     } catch (_) {}
   }
 
+  void playVictory() {
+    playFanfare();
+  }
+
   void _playWebFrequency(double freq, double durationSec) {
     if (!kIsWeb) return;
     // Synthesize quick Web Audio API beep safely if running in web browser context

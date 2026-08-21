@@ -13,8 +13,8 @@ class UserProfile {
   Map<String, int> highScores;
 
   UserProfile({
-    this.name = 'Alex Rivera',
-    this.email = 'trainer@thinklab.app',
+    this.name = 'Mind Trainer',
+    this.email = 'trainer@thinkcity.app',
     required this.overallBpi,
     required this.domainBpi,
     required this.currentStreak,
@@ -27,8 +27,8 @@ class UserProfile {
 
   factory UserProfile.defaultProfile() {
     return UserProfile(
-      name: 'Alex Rivera',
-      email: 'trainer@thinklab.app',
+      name: 'Mind Trainer',
+      email: 'trainer@thinkcity.app',
       overallBpi: 620,
       domainBpi: {
         CognitiveDomain.speed: 600,
@@ -88,7 +88,7 @@ class UserProfile {
 
     return UserProfile(
       name: json['name'] ?? 'Alex Rivera',
-      email: json['email'] ?? 'trainer@thinklab.app',
+      email: json['email'] ?? 'trainer@thinkcity.app',
       overallBpi: json['overallBpi'] ?? 620,
       domainBpi: domainMap,
       currentStreak: json['currentStreak'] ?? 0,

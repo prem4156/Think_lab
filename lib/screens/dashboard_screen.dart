@@ -8,7 +8,9 @@ import '../services/storage_service.dart';
 import '../theme/app_theme.dart';
 import 'bpi_analytics_screen.dart';
 import 'game_modal_tutorial.dart';
+import 'level_journey_screen.dart';
 import 'login_screen.dart';
+import 'profile_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -21,7 +23,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
   UserProfile? profile;
   DailyWorkout? workout;
   bool isLoading = true;
+  int currentTab = 0;
   CognitiveDomain? selectedDomainFilter;
+  String searchQuery = '';
+  final TextEditingController searchController = TextEditingController();
 
   @override
   void initState() {
@@ -78,6 +83,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     if (isLoading || profile == null || workout == null) {
       return const Scaffold(
@@ -90,92 +101,167 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: AppTheme.bgDark,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Top Bar Header with Avatar & Badges
-              _buildTopHeader()
-                  .animate()
-                  .fadeIn(duration: 400.ms)
-                  .slideY(begin: -0.1, end: 0),
-              const SizedBox(height: 24),
-
-              // Hero Daily Workout Card
-              _buildDailyWorkoutCard()
-                  .animate()
-                  .fadeIn(duration: 500.ms, delay: 100.ms)
-                  .slideY(begin: 0.05, end: 0),
-
-              const SizedBox(height: 28),
-
-              // Cognitive Domain Filter Bar
-              _buildDomainFilterBar()
-                  .animate()
-                  .fadeIn(duration: 400.ms, delay: 200.ms),
-
-              const SizedBox(height: 20),
-
-              // Minigames Section Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    selectedDomainFilter == null
-                        ? 'ALL MINIGAMES (${_getFilteredGames().length})'
-                        : '${selectedDomainFilter!.displayName.toUpperCase()} GAMES',
-                    style: const TextStyle(
-                      color: AppTheme.textPrimary,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.1,
-                    ),
-                  ),
-                  InkWell(
-                    onTap: () {
-                      SoundService.instance.playTap();
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (_) => const BpiAnalyticsScreen()),
-                      ).then((_) => _loadDashboardData());
-                    },
-                    borderRadius: BorderRadius.circular(12),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      child: Row(
-                        children: const [
-                          Icon(Icons.insights,
-                              size: 18, color: AppTheme.primaryNeon),
-                          SizedBox(width: 4),
-                          Text(
-                            'BPI Stats',
-                            style: TextStyle(
-                              color: AppTheme.primaryNeon,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ).animate().fadeIn(delay: 250.ms),
-
-              const SizedBox(height: 14),
-
-              // Minigames Grid
-              _buildMinigamesGrid()
-                  .animate()
-                  .fadeIn(duration: 500.ms, delay: 300.ms),
-
-              const SizedBox(height: 24),
-            ],
+      body: IndexedStack(
+        index: currentTab,
+        children: [
+          LevelJourneyScreen(
+            profile: profile!,
+            onProgressUpdated: _loadDashboardData,
           ),
+          _buildHomeTab(),
+          const BpiAnalyticsScreen(),
+          ProfileScreen(onProfileUpdated: _loadDashboardData),
+        ],
+      ),
+      bottomNavigationBar: _buildFloatingBottomNav(),
+    );
+  }
+
+  Widget _buildFloatingBottomNav() {
+    return Container(
+      margin: const EdgeInsets.fromLTRB(20, 0, 20, 16),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: AppTheme.surfaceCardBorder),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryNeon.withValues(alpha: 0.1),
+            blurRadius: 20,
+            spreadRadius: 2,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _navItem(0, Icons.map_rounded, 'Journey'),
+          _navItem(1, Icons.fitness_center_rounded, 'Mind Gym'),
+          _navItem(2, Icons.insights_rounded, 'Analytics'),
+          _navItem(3, Icons.person_rounded, 'Profile'),
+        ],
+      ),
+    );
+  }
+
+  Widget _navItem(int index, IconData icon, String label) {
+    bool isSelected = currentTab == index;
+    Color activeColor = AppTheme.primaryNeon;
+
+    return InkWell(
+      onTap: () {
+        SoundService.instance.playTap();
+        setState(() {
+          currentTab = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 250),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? activeColor : AppTheme.textMuted,
+              size: 22,
+            ),
+            if (isSelected) ...[
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  color: activeColor,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHomeTab() {
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Bar Header with Avatar & Badges
+            _buildTopHeader()
+                .animate()
+                .fadeIn(duration: 400.ms)
+                .slideY(begin: -0.1, end: 0),
+            const SizedBox(height: 20),
+
+            // Hero Daily Workout Card
+            _buildDailyWorkoutCard()
+                .animate()
+                .fadeIn(duration: 500.ms, delay: 100.ms)
+                .slideY(begin: 0.05, end: 0),
+
+            const SizedBox(height: 24),
+
+            // Live Search Input Box
+            _buildSearchBar()
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 150.ms),
+
+            const SizedBox(height: 16),
+
+            // Cognitive Domain Filter Bar
+            _buildDomainFilterBar()
+                .animate()
+                .fadeIn(duration: 400.ms, delay: 200.ms),
+
+            const SizedBox(height: 20),
+
+            // Minigames Section Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  selectedDomainFilter == null
+                      ? 'MINIGAMES (${_getFilteredGames().length})'
+                      : '${selectedDomainFilter!.displayName.toUpperCase()} GAMES',
+                  style: const TextStyle(
+                    color: AppTheme.textPrimary,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.1,
+                  ),
+                ),
+                Text(
+                  '${_getFilteredGames().length} available',
+                  style: const TextStyle(
+                    color: AppTheme.textMuted,
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ],
+            ).animate().fadeIn(delay: 250.ms),
+
+            const SizedBox(height: 14),
+
+            // Minigames Grid
+            _buildMinigamesGrid()
+                .animate()
+                .fadeIn(duration: 500.ms, delay: 300.ms),
+
+            const SizedBox(height: 16),
+          ],
         ),
       ),
     );
@@ -187,25 +273,32 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(3),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: AppTheme.primaryGradient,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryNeon.withValues(alpha: 0.25),
-                    blurRadius: 12,
-                    spreadRadius: 2,
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  currentTab = 3; // Jump to profile tab
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.all(3),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: AppTheme.primaryGradient,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryNeon.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const CircleAvatar(
+                  radius: 22,
+                  backgroundColor: AppTheme.surfaceCard,
+                  child: Text(
+                    '🧠',
+                    style: TextStyle(fontSize: 22),
                   ),
-                ],
-              ),
-              child: CircleAvatar(
-                radius: 22,
-                backgroundColor: AppTheme.surfaceCard,
-                child: const Text(
-                  '🧠',
-                  style: TextStyle(fontSize: 22),
                 ),
               ),
             ),
@@ -216,7 +309,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 Row(
                   children: const [
                     Text(
-                      'THINK LAB',
+                      'THINK CITY',
                       style: TextStyle(
                         color: AppTheme.primaryNeon,
                         fontSize: 12,
@@ -260,6 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
             ),
             const SizedBox(width: 8),
+
             // Streak Flame Badge
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -298,11 +392,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
             InkWell(
               onTap: () {
                 SoundService.instance.playTap();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                      builder: (_) => const BpiAnalyticsScreen()),
-                ).then((_) => _loadDashboardData());
+                setState(() {
+                  currentTab = 2; // Jump to analytics
+                });
               },
               borderRadius: BorderRadius.circular(20),
               child: Container(
@@ -539,16 +631,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     height: 52,
                     child: Container(
                       decoration: BoxDecoration(
-                        gradient: completed
-                            ? null
-                            : AppTheme.primaryGradient,
+                        gradient: completed ? null : AppTheme.primaryGradient,
                         color: completed ? AppTheme.bgDark : null,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: completed
                             ? []
                             : [
                                 BoxShadow(
-                                  color: AppTheme.primaryNeon.withValues(alpha: 0.3),
+                                  color: AppTheme.primaryNeon
+                                      .withValues(alpha: 0.3),
                                   blurRadius: 16,
                                   offset: const Offset(0, 4),
                                 ),
@@ -604,6 +695,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  Widget _buildSearchBar() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.surfaceCard,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.surfaceCardBorder),
+      ),
+      child: TextField(
+        controller: searchController,
+        onChanged: (val) {
+          setState(() {
+            searchQuery = val.trim().toLowerCase();
+          });
+        },
+        style: const TextStyle(
+          color: AppTheme.textPrimary,
+          fontSize: 14,
+          fontWeight: FontWeight.w600,
+        ),
+        decoration: InputDecoration(
+          hintText: 'Search games by name or skill...',
+          hintStyle: const TextStyle(
+            color: AppTheme.textMuted,
+            fontSize: 13,
+          ),
+          prefixIcon:
+              const Icon(Icons.search_rounded, color: AppTheme.primaryNeon, size: 20),
+          suffixIcon: searchQuery.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear_rounded,
+                      color: AppTheme.textMuted, size: 18),
+                  onPressed: () {
+                    searchController.clear();
+                    setState(() {
+                      searchQuery = '';
+                    });
+                  },
+                )
+              : null,
+          filled: false,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
   Widget _buildDomainFilterBar() {
     final List<CognitiveDomain?> domains = [
       null, // All
@@ -637,14 +776,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? color
-                      : AppTheme.surfaceCard,
+                  color: isSelected ? color : AppTheme.surfaceCard,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isSelected
-                        ? color
-                        : AppTheme.surfaceCardBorder,
+                    color: isSelected ? color : AppTheme.surfaceCardBorder,
                   ),
                   boxShadow: isSelected
                       ? [
@@ -658,9 +793,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ),
                 child: Center(
                   child: Text(
-                    domain == null
-                        ? '⚡ All Domains'
-                        : domain.displayName,
+                    domain == null ? '⚡ All Domains' : domain.displayName,
                     style: TextStyle(
                       color: isSelected ? Colors.white : AppTheme.textSecondary,
                       fontWeight:
@@ -745,14 +878,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
       },
     ];
 
-    if (selectedDomainFilter == null) return allGames;
-    return allGames
-        .where((g) => g['domain'] == selectedDomainFilter)
-        .toList();
+    List<Map<String, dynamic>> list = allGames;
+
+    if (selectedDomainFilter != null) {
+      list = list.where((g) => g['domain'] == selectedDomainFilter).toList();
+    }
+
+    if (searchQuery.isNotEmpty) {
+      list = list.where((g) {
+        String t = (g['title'] as String).toLowerCase();
+        String d = (g['desc'] as String).toLowerCase();
+        return t.contains(searchQuery) || d.contains(searchQuery);
+      }).toList();
+    }
+
+    return list;
   }
 
   Widget _buildMinigamesGrid() {
     final filteredGames = _getFilteredGames();
+
+    if (filteredGames.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(32),
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppTheme.surfaceCard,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppTheme.surfaceCardBorder),
+        ),
+        child: Column(
+          children: const [
+            Icon(Icons.search_off_rounded, size: 40, color: AppTheme.textMuted),
+            SizedBox(height: 12),
+            Text(
+              'No minigames match your search.',
+              style: TextStyle(
+                color: AppTheme.textSecondary,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return GridView.builder(
       shrinkWrap: true,

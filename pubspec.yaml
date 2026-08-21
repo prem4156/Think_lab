@@ -38,6 +38,7 @@ dependencies:
   fl_chart: ^1.2.0
   google_fonts: ^8.2.1
   flutter_animate: ^4.5.2
+  flame: ^1.35.1
 
 dev_dependencies:
   flutter_test:
